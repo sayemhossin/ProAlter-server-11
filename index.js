@@ -50,7 +50,27 @@ app.get('/allquery/:id', async(req,res) => {
     res.send(result)
 })
 
+app.put('/allquery/:id', async(req,res) =>{
+    const id = req.params.id
+    const query = req.body
+    const filter = {_id: new ObjectId(id)}
+    const options = {upsert:true}
 
+    const updateCrafts = {
+        $set:{
+            product:query.product,
+            product:query.product,
+            photo:query.photo,
+            title:query.title,
+            boycott_reason:query.boycott_reason,
+        }
+      }
+
+      const result = await allQueryCollection.updateOne(filter,updateCrafts,options)
+      res.send(result)
+
+
+})
 
 
 
