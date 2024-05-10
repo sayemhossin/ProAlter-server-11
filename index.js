@@ -37,13 +37,20 @@ app.post('/allquery', async(req,res)=>{
     res.send(result)
 })
 
+
 app.get('/allquery', async(req,res)=>{
     const cursor = allQueryCollection.find()
     const result = await cursor.toArray()
     res.send(result)
 })
+// sort
 
-
+app.get("/myquery/:email", async (req, res) => {
+    const result = await allQueryCollection.find({ 'added_by.email': req.params.email })
+    .sort({ 'added_by.date': -1 })
+    .toArray();
+    res.send(result)
+  })
 
 
 
