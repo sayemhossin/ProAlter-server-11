@@ -65,12 +65,18 @@ app.put('/allquery/:id', async(req,res) =>{
             boycott_reason:query.boycott_reason,
         }
       }
-
       const result = await allQueryCollection.updateOne(filter,updateCrafts,options)
       res.send(result)
-
-
 })
+
+app.delete('/allquery/:id', async(req,res)=>{
+    const id = req.params.id
+    const query = {_id: new ObjectId(id)}
+    const result = await allQueryCollection.deleteOne(query)
+    res.send(result)
+  })
+  
+
 
 
 
