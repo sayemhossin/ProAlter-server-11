@@ -28,6 +28,7 @@ async function run() {
 
 const database = client.db('ProAlter')
 const allQueryCollection = database.collection('allquery')
+const recommendedCollection = database.collection('recommendation')
 
 
 
@@ -85,11 +86,6 @@ app.delete('/allquery/:id', async(req,res)=>{
     res.send(result)
   })
   
-
-
-
-
-
 // sort
 
 app.get("/myquery/:email", async (req, res) => {
@@ -98,6 +94,46 @@ app.get("/myquery/:email", async (req, res) => {
     .toArray();
     res.send(result)
   })
+
+// recommendation Part 
+
+app.post('/recommendation', async(req,res)=>{
+  const query = req.body
+  const result = await recommendedCollection.insertOne(query)
+
+  const queryId = query.query_id;
+    await allQueryCollection.updateOne(
+        { _id: new ObjectId(queryId) }, 
+        { $inc: { 'added_by.recommendation_count': 1 } } 
+    );
+  res.send(result)
+})
+
+
+app.get('/recommendation', async(req,res)=>{
+  const cursor = recommendedCollection.find()
+  const result = await cursor.toArray()
+  res.send(result)
+})
+
+
+app.get('/recommendation/:id', async(req,res) => {
+  const id = req.params.id
+  const query = {_id: new ObjectId(id)}
+  const result =  await recommendedCollection.findOne(query)
+  res.send(result)
+})
+
+app.get('/recommendetion/:query_id', async(req,res)=>{
+  const result = await recommendedCollection.find({query_id:req.params.query_id}).toArray()
+  res.send(result)
+})
+
+app.get("/myrecommendetion/:email", async (req, res) => {
+  const result = await recommendedCollection.find({ recommended_user_email: req.params.email }).toArray();
+  res.send(result)
+})
+
 
 
 
