@@ -43,6 +43,15 @@ app.get('/allquery', async(req,res)=>{
     const result = await cursor.toArray()
     res.send(result)
 })
+app.get('/allquerys', async(req,res)=>{
+    const cursor = allQueryCollection.find().sort({ 'added_by.date': -1 })
+    
+    const result = await cursor.toArray()
+    res.send(result)
+})
+
+
+
 app.get('/allquery/:id', async(req,res) => {
     const id = req.params.id
     const query = {_id: new ObjectId(id)}
