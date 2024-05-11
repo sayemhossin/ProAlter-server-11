@@ -124,6 +124,21 @@ app.get('/recommendation/:id', async(req,res) => {
   res.send(result)
 })
 
+app.delete('/recommendation/:id', async(req,res)=>{
+  const id = req.params.id
+  const query = {_id: new ObjectId(id)}
+  const deletedRecommendation = await recommendedCollection.findOne(query);
+  const result = await recommendedCollection.deleteOne(query)
+  await allQueryCollection.updateOne(
+    { _id: new ObjectId(deletedRecommendation.query_id) }, 
+    { $inc: { 'added_by.recommendation_count': -1 } } 
+);
+  res.send(result)
+})
+
+
+
+
 app.get('/recommendetion/:query_id', async(req,res)=>{
   const result = await recommendedCollection.find({query_id:req.params.query_id}).toArray()
   res.send(result)
