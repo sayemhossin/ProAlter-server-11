@@ -44,8 +44,20 @@ app.get('/allquery', async(req,res)=>{
     const result = await cursor.toArray()
     res.send(result)
 })
+
+
+
+
 app.get('/allquerys', async(req,res)=>{
-    const cursor = allQueryCollection.find().sort({ 'added_by.date': -1 })
+  const search = req.query.search;
+  let query = {};
+
+  if (typeof search === 'string') {
+    query = {
+      product: { $regex: search, $options: 'i' }
+    };
+  }
+    const cursor = allQueryCollection.find(query).sort({ 'added_by.date': -1 })
     
     const result = await cursor.toArray()
     res.send(result)
