@@ -1,12 +1,20 @@
 const express = require('express');
 const cors = require('cors');
+const jwt = require('jsonwebtoken');
+const cookieParser = require('cookie-parser')
 require('dotenv').config()
 const app = express()
 const port = process.env.PORT || 5000
 
-app.use(cors())
-app.use(express.json())
+app.use(cors({
+  origin:[
+    'http://localhost:5173'
+  ],
+  credentials: true
+}))
 
+app.use(express.json())
+app.use(cookieParser())
 
 
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
@@ -20,6 +28,24 @@ const client = new MongoClient(uri, {
     deprecationErrors: true,
   }
 });
+
+
+
+const verifyToken = async(req,res,next)=>{
+  const token = req?.cookies?.token
+  if(!token){
+    return res.status(401).send({message:'Unauthorized User'})
+  }
+  jwt.verify(token,process.env.JWT_TOKEN,(err,decode)=>{
+    if(err){
+      return res.status(401).send({message:'Unauthorized User'})
+    }
+    req.user=decode
+    next()
+  })
+}
+
+
 
 async function run() {
   try {
@@ -65,14 +91,14 @@ app.get('/allquerys', async(req,res)=>{
 
 
 
-app.get('/allquery/:id', async(req,res) => {
+app.get('/allquery/:id',verifyToken, async(req,res) => {
     const id = req.params.id
     const query = {_id: new ObjectId(id)}
     const result =  await allQueryCollection.findOne(query)
     res.send(result)
 })
 
-app.put('/allquery/:id', async(req,res) =>{
+app.put('/allquery/:id',verifyToken, async(req,res) =>{
     const id = req.params.id
     const query = req.body
     const filter = {_id: new ObjectId(id)}
@@ -100,7 +126,8 @@ app.delete('/allquery/:id', async(req,res)=>{
   
 // sort
 
-app.get("/myquery/:email", async (req, res) => {
+app.get("/myquery/:email",verifyToken, async (req, res) => {
+
     const result = await allQueryCollection.find({ 'added_by.email': req.params.email })
     .sort({ 'added_by.date': -1 })
     .toArray();
@@ -129,7 +156,7 @@ app.get('/recommendation', async(req,res)=>{
 })
 
 
-app.get('/recommendation/:id', async(req,res) => {
+app.get('/recommendation/:id',verifyToken, async(req,res) => {
   const id = req.params.id
   const query = {_id: new ObjectId(id)}
   const result =  await recommendedCollection.findOne(query)
@@ -151,15 +178,48 @@ app.delete('/recommendation/:id', async(req,res)=>{
 
 
 
-app.get('/recommendetion/:query_id', async(req,res)=>{
-  const result = await recommendedCollection.find({query_id:req.params.query_id}).toArray()
-  res.send(result)
-})
+app.get('/recommendations/:query_id', async (req, res) => {
+  const result = await recommendedCollection.find({ query_id: req.params.query_id }).toArray();
+  res.send(result);
+});
+
+
+
 
 app.get("/myrecommendetion/:email", async (req, res) => {
   const result = await recommendedCollection.find({ recommended_user_email: req.params.email }).toArray();
   res.send(result)
 })
+
+// jwt part
+
+app.post('/jwt', async(req,res)=>{
+  const user = req.body
+  const token = jwt.sign(user,process.env.JWT_TOKEN,{expiresIn:'7d'})
+  res
+  .cookie('token',token,{
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
+  })
+  .send({success:true})
+})
+
+
+app.post('/logout', (req,res)=>{
+  const user = req.body
+  
+  res.clearCookie('token',{
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+    maxAge:0
+  }).send({success:true})
+ 
+})
+
+
+
 
 
 
