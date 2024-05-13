@@ -100,7 +100,7 @@ app.get('/allquery/:id',verifyToken, async(req,res) => {
     res.send(result)
 })
 
-app.put('/allquery/:id',verifyToken, async(req,res) =>{
+app.put('/allquery/:id', async(req,res) =>{
     const id = req.params.id
     const query = req.body
     const filter = {_id: new ObjectId(id)}
