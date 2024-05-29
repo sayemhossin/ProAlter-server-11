@@ -3,6 +3,7 @@ const cors = require('cors');
 const jwt = require('jsonwebtoken');
 const cookieParser = require('cookie-parser')
 require('dotenv').config()
+const nodemailer = require("nodemailer");
 const app = express()
 const port = process.env.PORT || 5000
 
@@ -17,6 +18,53 @@ app.use(cors({
 
 app.use(express.json())
 app.use(cookieParser())
+
+
+// send email 
+
+const sendEmail = (emailAddress,emailData)=>{
+  const transporter = nodemailer.createTransport({
+    service:'gmail',
+    host: "smtp.gmail.com",
+    port: 587,
+    secure: false, // Use `true` for port 465, `false` for all other ports
+    auth: {
+      user: process.env.TRANSPORTER_EMAIL,
+      pass:  process.env.TRANSPORTER_PASS
+    },
+  });
+
+
+  // verify transporter
+  transporter.verify(function (error, success) {
+    if (error) {
+      console.log(error);
+    } else {
+      console.log("Server is ready to take our messages");
+    }
+  });
+
+
+  const mailBody = {
+    from: `"ProAlter" <${ process.env.TRANSPORTER_EMAIL}>`, // sender address
+    to: emailAddress, // list of receivers
+    subject: emailData.subject, // Subject line
+    html: emailData.message, // html body
+  }
+
+   transporter.sendMail(mailBody,(error,info)=>{
+    if(error){
+      console.log(error)
+    }else{
+      console.log('Email Sent: ' + info.response)
+    }
+  });
+
+}
+
+
+
+
 
 
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
@@ -57,6 +105,30 @@ async function run() {
 const database = client.db('ProAlter')
 const allQueryCollection = database.collection('allquery')
 const recommendedCollection = database.collection('recommendation')
+const userCollection = database.collection('users')
+
+
+
+// users related api 
+app.post('/users', async (req, res) => {
+  const user = req.body
+  // insert email if doesn't exist
+  //  you can do this many ways(1. email unique, 2. upsert 3. simple checking)
+  const query = { email: user?.email }
+  const existingUser = await userCollection.findOne(query)
+  if (existingUser) {
+    return res.send({ message: 'user already exists', insertedId: null })
+  }
+  const result = await userCollection.insertOne(user)
+  res.send(result)
+})
+
+
+
+
+
+
+
 
 
 
@@ -147,6 +219,12 @@ app.post('/recommendation', async(req,res)=>{
         { _id: new ObjectId(queryId) }, 
         { $inc: { 'added_by.recommendation_count': 1 } } 
     );
+     // sent email 
+     sendEmail(query?.query_adder_email,{
+      subject: 'You have Got a New Product Recommendation!',
+      message: `${query?.recommended_user_email} Added a new Recommendation in your posted query Let check it in the website`
+     })
+     
   res.send(result)
 })
 
